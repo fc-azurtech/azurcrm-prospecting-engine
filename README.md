@@ -10,6 +10,7 @@ Motor externo para AzurCRM Lead Finder en Odoo 18.
 - Incluye interfaz web minima con login por usuario/clave
 - Panel web para listar jobs y crear job manual
 - Proteccion por sesion/cookie en rutas web
+- Modo multi-tenant: callback por tenant con whitelist de dominios
 - Envia un batch demo firmado a Odoo: `POST /api/azurcrm_lead_finder/v1/signals/batch`
 - Health check: `GET /health`
 
@@ -29,9 +30,26 @@ Motor externo para AzurCRM Lead Finder en Odoo 18.
 - `ENGINE_WEB_SESSION_SECRET`: secreto para firma de cookie de sesion
 - `ODOO_CALLBACK_ENABLED`: `true|false`
 - `ODOO_CALLBACK_URL`: URL base Odoo, por ejemplo `http://127.0.0.1:8069`
+- `ODOO_TENANT_CALLBACKS_JSON`: mapa JSON tenant -> URL callback base
+- `ODOO_CALLBACK_ALLOWED_DOMAINS`: lista separada por coma de dominios permitidos
 - `ODOO_KEY_ID`: key id configurado en Odoo para inbound
 - `ODOO_HMAC_SECRET`: secreto HMAC configurado en Odoo
 - `ENGINE_DEFAULT_ETA_SECONDS`: tiempo de simulacion antes de callback
+
+Ejemplo multi-tenant:
+
+```env
+ODOO_TENANT_CALLBACKS_JSON={"cliente_azursoft":"https://cliente.azur-soft.com","cliente_antik":"https://antik.cl"}
+ODOO_CALLBACK_ALLOWED_DOMAINS=cliente.azur-soft.com,antik.cl
+```
+
+Prioridad de callback por job:
+
+1. `execution.callback_url` (o `callback_url` en raíz)
+2. Mapa por `execution.tenant_key` (o `tenant_key` en raíz)
+3. `ODOO_CALLBACK_URL`
+
+Si `ODOO_CALLBACK_ALLOWED_DOMAINS` está definido, cualquier callback debe caer en esa whitelist.
 
 ## Interfaz web
 
@@ -44,6 +62,7 @@ Notas de seguridad:
 
 - API de jobs mantiene proteccion Bearer en `POST /v1/prospecting/jobs` y `GET /v1/prospecting/jobs/{external_job_id}`.
 - Rutas web exigen sesion activa con cookie firmada.
+- El callback saliente valida dominio permitido (whitelist) para mitigar SSRF.
 
 ## Ejecutar en Linux con Docker
 

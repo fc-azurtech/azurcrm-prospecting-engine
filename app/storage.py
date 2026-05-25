@@ -13,6 +13,8 @@ class StoredJob:
     correlation_id: str
     payload_hash: str
     accepted_at: str
+    tenant_key: str | None = None
+    callback_target: str | None = None
     status: str = "accepted"
     completed_at: str | None = None
     callback_status: str | None = None

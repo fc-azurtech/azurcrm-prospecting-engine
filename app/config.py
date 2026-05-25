@@ -1,4 +1,5 @@
 import os
+import json
 
 
 class Settings:
@@ -16,6 +17,12 @@ class Settings:
     # Outbound callback to Odoo
     callback_enabled = os.getenv("ODOO_CALLBACK_ENABLED", "true").lower() == "true"
     odoo_callback_url = os.getenv("ODOO_CALLBACK_URL", "").rstrip("/")
+    odoo_tenant_callbacks_json = os.getenv("ODOO_TENANT_CALLBACKS_JSON", "{}")
+    callback_allowed_domains = [
+        domain.strip().lower()
+        for domain in os.getenv("ODOO_CALLBACK_ALLOWED_DOMAINS", "").split(",")
+        if domain.strip()
+    ]
     odoo_key_id = os.getenv("ODOO_KEY_ID", "")
     odoo_hmac_secret = os.getenv("ODOO_HMAC_SECRET", "")
 
@@ -24,3 +31,13 @@ class Settings:
 
 
 settings = Settings()
+
+try:
+    parsed_callbacks = json.loads(settings.odoo_tenant_callbacks_json)
+    settings.odoo_tenant_callbacks = {
+        str(k): str(v).rstrip("/")
+        for k, v in (parsed_callbacks.items() if isinstance(parsed_callbacks, dict) else [])
+        if str(v).strip()
+    }
+except json.JSONDecodeError:
+    settings.odoo_tenant_callbacks = {}

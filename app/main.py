@@ -1,6 +1,7 @@
 import asyncio
 import uuid
 from urllib.parse import quote_plus
+from urllib.parse import urlparse
 from typing import Annotated
 
 from fastapi import Depends, FastAPI, Form, Header, HTTPException, Request, Response, status
@@ -28,11 +29,64 @@ def health() -> HealthResponse:
 
 async def _background_process(job_payload: dict, external_job_id: str, correlation_id: str) -> None:
     await asyncio.sleep(max(0, settings.default_eta_seconds))
-    ok, callback_status = await send_batch_to_odoo(job_payload, external_job_id, correlation_id)
+    job = store.get_by_external(external_job_id)
+    callback_base_url = job.callback_target if job else None
+    ok, callback_status = await send_batch_to_odoo(job_payload, external_job_id, correlation_id, callback_base_url)
     store.update_status(external_job_id, "done" if ok else "error", callback_status)
 
 
-def _build_job_payload(request_id: str, campaign_name: str) -> JobCreateRequest:
+def _extract_optional_str(value: object) -> str | None:
+    if isinstance(value, str) and value.strip():
+        return value.strip()
+    return None
+
+
+def _is_allowed_domain(hostname: str) -> bool:
+    allowed_domains = settings.callback_allowed_domains
+    if not allowed_domains:
+        return True
+    host = hostname.lower()
+    return any(host == allowed or host.endswith(f".{allowed}") for allowed in allowed_domains)
+
+
+def _validate_callback_url(callback_url: str) -> str:
+    parsed = urlparse(callback_url)
+    if parsed.scheme not in {"http", "https"}:
+        raise HTTPException(status_code=422, detail="invalid_callback_scheme")
+    if not parsed.hostname:
+        raise HTTPException(status_code=422, detail="invalid_callback_url")
+    if not _is_allowed_domain(parsed.hostname):
+        raise HTTPException(status_code=422, detail="callback_domain_not_allowed")
+    return callback_url.rstrip("/")
+
+
+def _resolve_callback_target(payload: JobCreateRequest) -> tuple[str, str | None]:
+    execution = payload.execution or {}
+    tenant_key = _extract_optional_str(payload.tenant_key) or _extract_optional_str(execution.get("tenant_key"))
+    explicit_callback = _extract_optional_str(payload.callback_url) or _extract_optional_str(execution.get("callback_url"))
+
+    mapped_callback = settings.odoo_tenant_callbacks.get(tenant_key, "") if tenant_key else ""
+    callback_target = explicit_callback or _extract_optional_str(mapped_callback) or settings.odoo_callback_url
+
+    if not callback_target:
+        raise HTTPException(status_code=422, detail="missing_odoo_callback_url")
+    return _validate_callback_url(callback_target), tenant_key
+
+
+def _build_job_payload(
+    request_id: str,
+    campaign_name: str,
+    tenant_key: str | None = None,
+    callback_url: str | None = None,
+) -> JobCreateRequest:
+    execution: dict[str, str] = {}
+    clean_tenant_key = _extract_optional_str(tenant_key)
+    clean_callback_url = _extract_optional_str(callback_url)
+    if clean_tenant_key:
+        execution["tenant_key"] = clean_tenant_key
+    if clean_callback_url:
+        execution["callback_url"] = clean_callback_url
+
     return JobCreateRequest(
         request_id=request_id,
         campaign={"name": campaign_name},
@@ -41,9 +95,11 @@ def _build_job_payload(request_id: str, campaign_name: str) -> JobCreateRequest:
         offer={},
         keywords={},
         sources={},
-        execution={},
+        execution=execution,
         assignment={},
         query_templates=[],
+        tenant_key=clean_tenant_key,
+        callback_url=clean_callback_url,
     )
 
 
@@ -71,6 +127,14 @@ def _enqueue_job(
 def _submit_job(payload: JobCreateRequest, idempotency_key: str, correlation_id: str) -> tuple[JobCreateResponse, int]:
     if not idempotency_key:
         raise HTTPException(status_code=422, detail="X-Idempotency-Key is required")
+
+    callback_target = None
+    tenant_key = None
+    if settings.callback_enabled:
+        callback_target, tenant_key = _resolve_callback_target(payload)
+    else:
+        execution = payload.execution or {}
+        tenant_key = _extract_optional_str(payload.tenant_key) or _extract_optional_str(execution.get("tenant_key"))
 
     payload_dict = payload.model_dump(mode="json")
     payload_hash = store.compute_hash(payload_dict)
@@ -101,6 +165,8 @@ def _submit_job(payload: JobCreateRequest, idempotency_key: str, correlation_id:
         correlation_id=correlation_id,
         payload_hash=payload_hash,
         accepted_at=accepted_at,
+        tenant_key=tenant_key,
+        callback_target=callback_target,
         status="accepted",
     )
     store.save(job)
@@ -180,8 +246,15 @@ def web_create_job(
     request_id: str = Form(...),
     campaign_name: str = Form("Manual Job"),
     idempotency_key: str = Form(...),
+    tenant_key: str = Form(""),
+    callback_url: str = Form(""),
 ):
-    payload = _build_job_payload(request_id=request_id.strip(), campaign_name=campaign_name.strip() or "Manual Job")
+    payload = _build_job_payload(
+        request_id=request_id.strip(),
+        campaign_name=campaign_name.strip() or "Manual Job",
+        tenant_key=tenant_key,
+        callback_url=callback_url,
+    )
     correlation_id = str(uuid.uuid4())
     try:
         result, _status_code = _submit_job(payload, idempotency_key.strip(), correlation_id)

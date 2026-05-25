@@ -14,6 +14,8 @@ class JobCreateRequest(BaseModel):
     execution: dict[str, Any]
     assignment: dict[str, Any]
     query_templates: list[dict[str, Any]] = Field(default_factory=list)
+    tenant_key: str | None = None
+    callback_url: str | None = None
 
 
 class JobCreateResponse(BaseModel):

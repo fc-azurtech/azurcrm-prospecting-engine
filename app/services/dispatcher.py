@@ -86,10 +86,16 @@ def _build_signature(timestamp: str, raw_body: bytes) -> str:
     return hmac.new(settings.odoo_hmac_secret.encode("utf-8"), signature_base.encode("utf-8"), hashlib.sha256).hexdigest()
 
 
-async def send_batch_to_odoo(job_payload: dict, external_job_id: str, correlation_id: str) -> tuple[bool, str]:
+async def send_batch_to_odoo(
+    job_payload: dict,
+    external_job_id: str,
+    correlation_id: str,
+    callback_base_url: str | None = None,
+) -> tuple[bool, str]:
     if not settings.callback_enabled:
         return True, "callback_disabled"
-    if not settings.odoo_callback_url:
+    target_base_url = (callback_base_url or settings.odoo_callback_url).rstrip("/")
+    if not target_base_url:
         return False, "missing_odoo_callback_url"
     if not settings.odoo_key_id or not settings.odoo_hmac_secret:
         return False, "missing_odoo_hmac_credentials"
@@ -117,7 +123,7 @@ async def send_batch_to_odoo(job_payload: dict, external_job_id: str, correlatio
         "X-Azur-Signature": signature,
     }
 
-    callback_url = f"{settings.odoo_callback_url}/api/azurcrm_lead_finder/v1/signals/batch"
+    callback_url = f"{target_base_url}/api/azurcrm_lead_finder/v1/signals/batch"
 
     async with httpx.AsyncClient(timeout=30) as client:
         response = await client.post(callback_url, content=raw_body, headers=headers)

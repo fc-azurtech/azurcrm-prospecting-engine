@@ -115,7 +115,7 @@
     table {
       width: 100%;
       border-collapse: collapse;
-      min-width: 860px;
+      min-width: 1080px;
       background: #fff;
     }
     th,
@@ -169,8 +169,16 @@
             <label for="idempotency_key">Idempotency Key</label>
             <input id="idempotency_key" name="idempotency_key" value="{{ default_request_id }}" required />
           </div>
+          <div>
+            <label for="tenant_key">Tenant Key (opcional)</label>
+            <input id="tenant_key" name="tenant_key" placeholder="cliente_azursoft" />
+          </div>
+          <div>
+            <label for="callback_url">Callback URL (opcional)</label>
+            <input id="callback_url" name="callback_url" placeholder="https://cliente.azur-soft.com" />
+          </div>
         </div>
-        <p class="muted">El backend completa el resto del payload con estructura minima valida.</p>
+        <p class="muted">Si no envias callback_url, el engine intenta resolver por tenant_key y luego por ODOO_CALLBACK_URL.</p>
         <button class="submit-btn" type="submit">Crear job</button>
       </form>
     </section>
@@ -195,6 +203,8 @@
               <th>Request ID</th>
               <th>Idempotency Key</th>
               <th>Correlation ID</th>
+              <th>Tenant</th>
+              <th>Callback Target</th>
               <th>Accepted At (UTC)</th>
               <th>Completed At (UTC)</th>
               <th>Callback</th>
@@ -208,13 +218,15 @@
                 <td>{{ job.request_id }}</td>
                 <td>{{ job.idempotency_key }}</td>
                 <td>{{ job.correlation_id }}</td>
+                <td>{{ job.tenant_key or "-" }}</td>
+                <td>{{ job.callback_target or "-" }}</td>
                 <td>{{ job.accepted_at }}</td>
                 <td>{{ job.completed_at or "-" }}</td>
                 <td>{{ job.callback_status or "-" }}</td>
               </tr>
             {% else %}
               <tr>
-                <td colspan="8">Sin jobs aun.</td>
+                <td colspan="10">Sin jobs aun.</td>
               </tr>
             {% endfor %}
           </tbody>
