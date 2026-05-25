@@ -1,0 +1,17 @@
+services:
+  azurcrm_prospecting_engine:
+    build: .
+    container_name: azurcrm_prospecting_engine
+    restart: unless-stopped
+    ports:
+      - "8090:8090"
+    environment:
+      ENGINE_INBOUND_BEARER_TOKEN: "${ENGINE_INBOUND_BEARER_TOKEN:-change-me}"
+      ENGINE_WEB_LOGIN_USER: "${ENGINE_WEB_LOGIN_USER:-admin}"
+      ENGINE_WEB_LOGIN_PASSWORD: "${ENGINE_WEB_LOGIN_PASSWORD:-admin}"
+      ENGINE_WEB_SESSION_SECRET: "${ENGINE_WEB_SESSION_SECRET:-change-me-session-secret}"
+      ODOO_CALLBACK_ENABLED: "${ODOO_CALLBACK_ENABLED:-true}"
+      ODOO_CALLBACK_URL: "${ODOO_CALLBACK_URL:-http://host.docker.internal:8069}"
+      ODOO_KEY_ID: "${ODOO_KEY_ID:-}"
+      ODOO_HMAC_SECRET: "${ODOO_HMAC_SECRET:-}"
+      ENGINE_DEFAULT_ETA_SECONDS: "${ENGINE_DEFAULT_ETA_SECONDS:-2}"

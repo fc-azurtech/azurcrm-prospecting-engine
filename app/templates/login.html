@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AzurCRM Engine - Login</title>
+  <style>
+    :root {
+      --bg-a: #f8fafc;
+      --bg-b: #e2e8f0;
+      --card: #ffffff;
+      --text: #0f172a;
+      --muted: #475569;
+      --primary: #0f766e;
+      --primary-hover: #115e59;
+      --danger-bg: #fee2e2;
+      --danger-text: #991b1b;
+      --border: #cbd5e1;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Segoe UI", Tahoma, sans-serif;
+      color: var(--text);
+      background: linear-gradient(145deg, var(--bg-a), var(--bg-b));
+      display: grid;
+      place-items: center;
+      padding: 24px;
+    }
+    .card {
+      width: 100%;
+      max-width: 380px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      box-shadow: 0 12px 32px rgba(15, 23, 42, 0.12);
+      padding: 26px;
+    }
+    h1 {
+      margin: 0 0 4px;
+      font-size: 1.3rem;
+    }
+    p {
+      margin: 0 0 18px;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+    label {
+      display: block;
+      margin: 12px 0 6px;
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+    input {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: 0.95rem;
+    }
+    button {
+      margin-top: 16px;
+      width: 100%;
+      border: 0;
+      border-radius: 10px;
+      background: var(--primary);
+      color: #fff;
+      padding: 10px 12px;
+      font-size: 0.95rem;
+      cursor: pointer;
+    }
+    button:hover { background: var(--primary-hover); }
+    .error {
+      margin-top: 12px;
+      padding: 10px 12px;
+      border-radius: 8px;
+      background: var(--danger-bg);
+      color: var(--danger-text);
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <h1>AzurCRM Prospecting Engine</h1>
+    <p>Ingreso web del motor externo</p>
+    <form method="post" action="/web/login">
+      <label for="username">Usuario</label>
+      <input id="username" name="username" type="text" autocomplete="username" required />
+
+      <label for="password">Clave</label>
+      <input id="password" name="password" type="password" autocomplete="current-password" required />
+
+      <button type="submit">Entrar</button>
+    </form>
+    {% if error %}
+      <div class="error">{{ error }}</div>
+    {% endif %}
+  </main>
+</body>
+</html>

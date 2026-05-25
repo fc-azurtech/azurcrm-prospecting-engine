@@ -1,0 +1,21 @@
+[Unit]
+Description=AzurCRM Prospecting Engine
+After=network.target
+
+[Service]
+Type=simple
+User=odoo
+Group=odoo
+WorkingDirectory=/opt/azurcrm_prospecting_engine_linux
+Environment=ENGINE_INBOUND_BEARER_TOKEN=change-me
+Environment=ODOO_CALLBACK_ENABLED=true
+Environment=ODOO_CALLBACK_URL=http://127.0.0.1:8069
+Environment=ODOO_KEY_ID=replace-key-id
+Environment=ODOO_HMAC_SECRET=replace-hmac-secret
+Environment=ENGINE_DEFAULT_ETA_SECONDS=2
+ExecStart=/opt/azurcrm_prospecting_engine_linux/.venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8090
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

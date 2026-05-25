@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AzurCRM Engine - Jobs</title>
+  <style>
+    :root {
+      --bg: #f1f5f9;
+      --panel: #ffffff;
+      --text: #0f172a;
+      --muted: #475569;
+      --primary: #0f766e;
+      --primary-hover: #115e59;
+      --border: #cbd5e1;
+      --success-bg: #dcfce7;
+      --success-text: #14532d;
+      --danger-bg: #fee2e2;
+      --danger-text: #991b1b;
+      --chip: #e2e8f0;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Tahoma, sans-serif;
+      color: var(--text);
+      background: radial-gradient(circle at top left, #e2e8f0, var(--bg));
+    }
+    .container {
+      width: min(1100px, 100% - 24px);
+      margin: 18px auto 34px;
+      display: grid;
+      gap: 16px;
+    }
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 16px;
+      box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+    }
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .topbar h1 {
+      margin: 0;
+      font-size: 1.25rem;
+    }
+    .muted { color: var(--muted); font-size: 0.92rem; }
+
+    form.inline { margin: 0; }
+    .logout-btn,
+    .submit-btn {
+      border: 0;
+      border-radius: 10px;
+      background: var(--primary);
+      color: #fff;
+      padding: 9px 12px;
+      cursor: pointer;
+      font-size: 0.9rem;
+    }
+    .logout-btn:hover,
+    .submit-btn:hover {
+      background: var(--primary-hover);
+    }
+
+    .grid {
+      display: grid;
+      gap: 10px;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    }
+
+    label {
+      display: block;
+      color: var(--muted);
+      margin-bottom: 6px;
+      font-size: 0.9rem;
+    }
+    input {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: 0.92rem;
+    }
+
+    .alerts {
+      display: grid;
+      gap: 8px;
+    }
+    .success,
+    .error {
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: 0.92rem;
+    }
+    .success {
+      background: var(--success-bg);
+      color: var(--success-text);
+    }
+    .error {
+      background: var(--danger-bg);
+      color: var(--danger-text);
+    }
+
+    .table-wrap {
+      overflow: auto;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 860px;
+      background: #fff;
+    }
+    th,
+    td {
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+      padding: 9px 10px;
+      font-size: 0.88rem;
+      vertical-align: top;
+    }
+    th {
+      background: #f8fafc;
+      color: var(--muted);
+      font-weight: 600;
+    }
+    .chip {
+      display: inline-block;
+      border-radius: 999px;
+      background: var(--chip);
+      padding: 2px 8px;
+      font-size: 0.8rem;
+      text-transform: lowercase;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <section class="panel topbar">
+      <div>
+        <h1>Panel de Jobs</h1>
+        <div class="muted">Usuario: {{ user }}</div>
+      </div>
+      <form class="inline" method="post" action="/web/logout">
+        <button class="logout-btn" type="submit">Salir</button>
+      </form>
+    </section>
+
+    <section class="panel">
+      <h2>Crear Job Manual</h2>
+      <form method="post" action="/web/jobs">
+        <div class="grid">
+          <div>
+            <label for="request_id">Request ID</label>
+            <input id="request_id" name="request_id" value="{{ default_request_id }}" required />
+          </div>
+          <div>
+            <label for="campaign_name">Nombre Campana</label>
+            <input id="campaign_name" name="campaign_name" value="Manual Job" required />
+          </div>
+          <div>
+            <label for="idempotency_key">Idempotency Key</label>
+            <input id="idempotency_key" name="idempotency_key" value="{{ default_request_id }}" required />
+          </div>
+        </div>
+        <p class="muted">El backend completa el resto del payload con estructura minima valida.</p>
+        <button class="submit-btn" type="submit">Crear job</button>
+      </form>
+    </section>
+
+    <section class="alerts">
+      {% if message %}
+        <div class="success">{{ message }}</div>
+      {% endif %}
+      {% if error %}
+        <div class="error">{{ error }}</div>
+      {% endif %}
+    </section>
+
+    <section class="panel">
+      <h2>Jobs recientes</h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>External Job ID</th>
+              <th>Status</th>
+              <th>Request ID</th>
+              <th>Idempotency Key</th>
+              <th>Correlation ID</th>
+              <th>Accepted At (UTC)</th>
+              <th>Completed At (UTC)</th>
+              <th>Callback</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for job in jobs %}
+              <tr>
+                <td>{{ job.external_job_id }}</td>
+                <td><span class="chip">{{ job.status }}</span></td>
+                <td>{{ job.request_id }}</td>
+                <td>{{ job.idempotency_key }}</td>
+                <td>{{ job.correlation_id }}</td>
+                <td>{{ job.accepted_at }}</td>
+                <td>{{ job.completed_at or "-" }}</td>
+                <td>{{ job.callback_status or "-" }}</td>
+              </tr>
+            {% else %}
+              <tr>
+                <td colspan="8">Sin jobs aun.</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+</body>
+</html>
