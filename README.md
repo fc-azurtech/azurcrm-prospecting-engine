@@ -79,11 +79,19 @@ chmod +x scripts/install_linux.sh
 ./scripts/install_linux.sh
 ```
 
+En Debian/Ubuntu sin Docker (modo nativo Python):
+
+```bash
+cd /opt/azurcrm-prospecting-engine
+chmod +x scripts/install_linux.sh
+./scripts/install_linux.sh --mode native
+```
+
 Con autoarranque por systemd:
 
 ```bash
 cd /opt/azurcrm-prospecting-engine
-sudo ./scripts/install_linux.sh --with-systemd
+sudo ./scripts/install_linux.sh --mode native --with-systemd
 ```
 
 ## Ejecutar local sin Docker
