@@ -90,6 +90,14 @@ start_native_service() {
     exit 1
   fi
 
+  local py_version
+  py_version="$(python3 -c 'import sys; print(f"{sys.version_info[0]}.{sys.version_info[1]}")')"
+  if ! python3 -c 'import sys; raise SystemExit(0 if sys.version_info >= (3, 10) else 1)'; then
+    echo "Error: Python ${py_version} detectado. Este engine requiere Python >= 3.10 para FastAPI/Pydantic actuales." >&2
+    echo "Sugerencias: usar Docker, actualizar el SO (Debian 12 recomendado), o instalar Python 3.10+ via pyenv." >&2
+    exit 1
+  fi
+
   # Debian/Ubuntu often ship python3 without venv/ensurepip by default.
   if ! python3 -c "import ensurepip" >/dev/null 2>&1; then
     if command -v apt-get >/dev/null 2>&1; then

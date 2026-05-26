@@ -87,6 +87,10 @@ chmod +x scripts/install_linux.sh
 ./scripts/install_linux.sh --mode native
 ```
 
+Requisito de runtime en modo nativo:
+
+- Python 3.10 o superior.
+
 Con autoarranque por systemd:
 
 ```bash
