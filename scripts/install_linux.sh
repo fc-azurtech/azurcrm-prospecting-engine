@@ -90,6 +90,23 @@ start_native_service() {
     exit 1
   fi
 
+  # Debian/Ubuntu often ship python3 without venv/ensurepip by default.
+  if ! python3 -c "import ensurepip" >/dev/null 2>&1; then
+    if command -v apt-get >/dev/null 2>&1; then
+      if [[ "${EUID}" -eq 0 ]]; then
+        echo "Instalando dependencias Python (python3-venv, python3-pip)..."
+        apt-get update
+        apt-get install -y python3-venv python3-pip
+      else
+        echo "Error: falta soporte venv en python3. Ejecuta como root o instala: apt-get install python3-venv python3-pip" >&2
+        exit 1
+      fi
+    else
+      echo "Error: python3 no tiene soporte venv (ensurepip). Instala python3-venv y python3-pip con el gestor de paquetes del sistema." >&2
+      exit 1
+    fi
+  fi
+
   cd "${PROJECT_DIR}"
   python3 -m venv .venv
   "${PROJECT_DIR}/.venv/bin/pip" install --upgrade pip
