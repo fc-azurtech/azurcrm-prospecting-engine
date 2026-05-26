@@ -87,6 +87,12 @@ chmod +x scripts/install_linux.sh
 ./scripts/install_linux.sh --mode native
 ```
 
+Si tienes multiples versiones de Python, puedes forzar una:
+
+```bash
+PYTHON_BIN=python3.11 ./scripts/install_linux.sh --mode native
+```
+
 Requisito de runtime en modo nativo:
 
 - Python 3.10 o superior.

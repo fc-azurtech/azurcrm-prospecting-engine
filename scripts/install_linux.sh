@@ -10,6 +10,7 @@ INSTALL_SYSTEMD="false"
 MODE="auto"
 SERVICE_NAME="azurcrm-prospecting-engine"
 PID_FILE="${PROJECT_DIR}/.engine.pid"
+PYTHON_BIN="${PYTHON_BIN:-}"
 
 print_help() {
   cat <<'EOF'
@@ -85,21 +86,31 @@ prepare_env_file() {
 }
 
 start_native_service() {
-  if ! command -v python3 >/dev/null 2>&1; then
-    echo "Error: python3 no esta instalado." >&2
+  local python_cmd="${PYTHON_BIN}"
+  if [[ -z "${python_cmd}" ]]; then
+    for candidate in python3.12 python3.11 python3.10 python3; do
+      if command -v "${candidate}" >/dev/null 2>&1; then
+        python_cmd="${candidate}"
+        break
+      fi
+    done
+  fi
+
+  if [[ -z "${python_cmd}" ]]; then
+    echo "Error: no se encontro Python. Instala Python 3.10+ o define PYTHON_BIN." >&2
     exit 1
   fi
 
   local py_version
-  py_version="$(python3 -c 'import sys; print(f"{sys.version_info[0]}.{sys.version_info[1]}")')"
-  if ! python3 -c 'import sys; raise SystemExit(0 if sys.version_info >= (3, 10) else 1)'; then
-    echo "Error: Python ${py_version} detectado. Este engine requiere Python >= 3.10 para FastAPI/Pydantic actuales." >&2
+  py_version="$(${python_cmd} -c 'import sys; print(f"{sys.version_info[0]}.{sys.version_info[1]}")')"
+  if ! ${python_cmd} -c 'import sys; raise SystemExit(0 if sys.version_info >= (3, 10) else 1)'; then
+    echo "Error: Python ${py_version} detectado en '${python_cmd}'. Este engine requiere Python >= 3.10 para FastAPI/Pydantic actuales." >&2
     echo "Sugerencias: usar Docker, actualizar el SO (Debian 12 recomendado), o instalar Python 3.10+ via pyenv." >&2
     exit 1
   fi
 
   # Debian/Ubuntu often ship python3 without venv/ensurepip by default.
-  if ! python3 -c "import ensurepip" >/dev/null 2>&1; then
+  if ! ${python_cmd} -c "import ensurepip" >/dev/null 2>&1; then
     if command -v apt-get >/dev/null 2>&1; then
       if [[ "${EUID}" -eq 0 ]]; then
         echo "Instalando dependencias Python (python3-venv, python3-pip)..."
@@ -116,7 +127,7 @@ start_native_service() {
   fi
 
   cd "${PROJECT_DIR}"
-  python3 -m venv .venv
+  ${python_cmd} -m venv .venv
   "${PROJECT_DIR}/.venv/bin/pip" install --upgrade pip
   "${PROJECT_DIR}/.venv/bin/pip" install -r requirements.txt
 
